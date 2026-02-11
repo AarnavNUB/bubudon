@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>For Priyanshi | 7 Years of Us</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body { background-color: #fff1f2; overflow-x: hidden; scroll-behavior: smooth; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        
+        #lock-screen {
+            position: fixed; inset: 0; background: #5a1212; z-index: 10000; display: flex; justify-content: center; align-items: center;
+            transition: transform 1.2s cubic-bezier(0.7, 0, 0.3, 1);
+        }
+        #celebration-overlay {
+            position: fixed; inset: 0; background: #fff1f2; z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.8s ease;
+        }
+        .unlocked #lock-screen { transform: translateY(-100%); }
+        .celebrating #celebration-overlay { display: flex; opacity: 1; }
+        
+        .floating-element {
+            position: fixed; pointer-events: none; z-index: 10001;
+            animation: floatUp var(--duration) linear forwards;
+            font-size: var(--size);
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(110vh) translateX(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(-20vh) translateX(var(--drift)) rotate(360deg); opacity: 0; }
+        }
+
+        .reveal { opacity: 0; transform: translateY(30px); transition: all 1s ease-out; }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        
+        .video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 30px; }
+        .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+        /* Game UI Styles */
+        .game-canvas-container { 
+            position: relative; width: 100%; aspect-ratio: 1/1; 
+            background: #fffafa; border-radius: 20px; border: 2px solid #ffe4e6; overflow: hidden;
+            touch-action: none;
+        }
+        canvas { width: 100%; height: 100%; display: block; }
+        .game-card { 
+            background: white; border-radius: 35px; padding: 24px; 
+            box-shadow: 0 15px 35px rgba(244, 63, 94, 0.1); border: 1px solid #fff1f2;
+            display: flex; flex-direction: column; height: 100%;
+        }
+
+        #game-modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+            z-index: 20000; display: none; align-items: center; justify-content: center; padding: 20px;
+        }
+
+        .card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; height: 100%; padding: 10px; }
+        .memory-card { background: #ffe4e6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 2rem; cursor: pointer; transition: transform 0.3s; }
+        .memory-card.flipped { background: white; border: 2px solid #fda4af; }
+        
+        .qa-grid { background: #5a1212; color: white; border-radius: 0; }
+        .qa-card { text-align: center; padding: 2rem; }
+        .qa-icon { font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.9; }
+
+        .promise-card {
+            background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+            border-left: 5px solid #be123c;
+        }
+
+        .hotline-grid div {
+            transition: all 0.3s ease;
+        }
+        .hotline-grid div:hover {
+            background: #be123c;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- LOCK SCREEN -->
+    <div id="lock-screen">
+        <div class="bg-white w-[90%] max-w-[400px] p-10 rounded-[40px] shadow-2xl text-center">
+            <p class="font-['Dancing_Script'] text-rose-600 text-4xl mb-2">Private Invitation</p>
+            <h2 class="font-['Playfair_Display'] text-2xl text-rose-950 mb-8">To: Priyanshi a.k.a Bubu</h2>
+            <input type="password" id="pass" class="w-full px-4 py-5 rounded-2xl border-2 border-rose-100 outline-none text-center mb-6 text-xl focus:border-rose-400" placeholder="Enter Password">
+            <button onclick="handleLogin()" class="w-full py-5 bg-rose-800 text-white rounded-2xl font-bold uppercase tracking-widest shadow-lg active:scale-95 transition-all">Unlock Memories</button>
+            <p id="err" class="mt-4 text-rose-600 text-xs font-bold opacity-0">Invalid password, Bubu!</p>
+        </div>
+    </div>
+
+    <!-- CELEBRATION INTRO -->
+    <div id="celebration-overlay">
+        <div class="text-center z-50">
+            <h2 class="font-['Dancing_Script'] text-7xl text-rose-600 mb-4 animate-pulse">I Love You, Bubu!</h2>
+            <p class="font-['Playfair_Display'] text-xl text-rose-900 tracking-[0.3em] uppercase opacity-60">7 Years of Magic</p>
+            <div class="mt-8 flex gap-4 justify-center text-3xl">
+                <span>🎈</span><span>✨</span><span>💖</span><span>✨</span><span>🎈</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL FOR WINNING -->
+    <div id="game-modal" onclick="this.style.display='none'">
+        <div class="bg-white p-12 rounded-[50px] text-center max-w-sm w-full shadow-2xl" onclick="event.stopPropagation()">
+            <div id="modal-icon" class="text-8xl mb-6"></div>
+            <h3 id="modal-title" class="text-4xl font-['Playfair_Display'] text-rose-900 mb-4"></h3>
+            <p id="modal-msg" class="text-gray-600 mb-10 text-xl"></p>
+            <button onclick="document.getElementById('game-modal').style.display='none'" class="w-full bg-rose-600 text-white py-5 rounded-3xl font-bold">Keep Playing ❤️</button>
+        </div>
+    </div>
+
+    <div id="main-content" style="display: none;">
+        <!-- HERO -->
+        <header class="min-h-screen flex items-center justify-center text-center px-6 relative bg-white">
+            <div class="reveal active">
+                <div class="inline-block px-6 py-2 rounded-full bg-rose-100 text-rose-600 text-xs font-bold tracking-[0.3em] mb-8 border border-rose-200 uppercase">SINCE 30.04.2020 • 1:51 PM</div>
+                <h1 class="font-['Playfair_Display'] text-7xl md:text-9xl text-rose-950 mb-6">To my <span class="font-['Dancing_Script'] text-rose-500">Priyanshi</span></h1>
+                <p class="text-rose-400 text-xl font-bold tracking-[0.5em] mt-8 uppercase italic">From Arnav (Dudu)</p>
+            </div>
+        </header>
+
+        <!-- THE LETTER -->
+        <section class="py-24 bg-white">
+            <div class="container mx-auto px-6 max-w-4xl">
+                <div class="reveal p-12 md:p-20 rounded-[60px] shadow-2xl bg-white border border-rose-50">
+                    <h2 class="font-['Playfair_Display'] text-4xl text-rose-900 mb-10 border-b border-rose-100 pb-6 italic">To the Woman who Changed my Life,</h2>
+                    <div class="space-y-8 text-xl text-gray-700 leading-relaxed font-light">
+                        <p>Bubu, seven years ago at <span class="font-bold text-rose-600">1:51 PM</span>, my world found its axis. Every second since then has been a beautiful proof that true love exists.</p>
+                        <p>We've grown, we've traveled, and we've built a world that is ours alone. You are my home, my peace, and my greatest adventure.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- RESTORED Q&A SECTION -->
+        <section class="qa-grid py-20">
+            <div class="container mx-auto px-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                    <div class="qa-card reveal">
+                        <div class="qa-icon">↗️</div>
+                        <h3 class="text-xl font-bold mb-4">Why does Dubu love Bubu?</h3>
+                        <p class="text-rose-100/80">Because she is the reason every sunrise feels like a promise kept.</p>
+                    </div>
+                    <div class="qa-card reveal">
+                        <div class="qa-icon">🔄</div>
+                        <h3 class="text-xl font-bold mb-4">When did forever begin?</h3>
+                        <p class="text-rose-100/80">On 30 April 2020 at 1:51 PM, when two hearts decided to beat as one.</p>
+                    </div>
+                    <div class="qa-card reveal">
+                        <div class="qa-icon">⚒️</div>
+                        <h3 class="text-xl font-bold mb-4">What makes us strongest?</h3>
+                        <p class="text-rose-100/80">The quiet moments, the laughter, the choice to stay when it matters most.</p>
+                    </div>
+                    <div class="qa-card reveal">
+                        <div class="qa-icon">🏠</div>
+                        <h3 class="text-xl font-bold mb-4">Where is home?</h3>
+                        <p class="text-rose-100/80">Wherever she is, in her eyes, in her arms, in the space between us.</p>
+                    </div>
+                    <div class="qa-card reveal">
+                        <div class="qa-icon">💬</div>
+                        <h3 class="text-xl font-bold mb-4">What comes next?</h3>
+                        <p class="text-rose-100/80">More adventures, more promises, more reasons to choose each other every single day.</p>
+                    </div>
+                    <div class="qa-card reveal">
+                        <div class="qa-icon">🌀</div>
+                        <h3 class="text-xl font-bold mb-4">How deep is this love?</h3>
+                        <p class="text-rose-100/80">Deeper than any ocean, stronger than any storm, eternal as the stars.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TRAVEL GALLERY -->
+        <section class="py-24 bg-white">
+            <div class="container mx-auto px-6">
+                <h2 class="font-['Playfair_Display'] text-5xl text-center text-rose-950 mb-20 reveal">Our Map of Memories</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div class="reveal group relative h-[400px] rounded-[50px] overflow-hidden shadow-xl">
+                        <img src="https://images.unsplash.com/photo-1623165203362-e9c60667d48d?q=80&w=1000&auto=format&fit=crop" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-rose-950/80 to-transparent p-10 flex flex-col justify-end">
+                            <h3 class="text-white text-3xl font-bold">Bhopal</h3>
+                            <p class="text-rose-100 italic">Peace by the lakes.</p>
+                        </div>
+                    </div>
+                    <div class="reveal group relative h-[400px] rounded-[50px] overflow-hidden shadow-xl">
+                        <img src="https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?q=80&w=1000&auto=format&fit=crop" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-rose-950/80 to-transparent p-10 flex flex-col justify-end">
+                            <h3 class="text-white text-3xl font-bold">Manali</h3>
+                            <p class="text-rose-100 italic">Snowy peaks & hot coffee.</p>
+                        </div>
+                    </div>
+                    <div class="reveal group relative h-[400px] rounded-[50px] overflow-hidden shadow-xl">
+                        <img src="https://images.unsplash.com/photo-1595658658481-d53d3f999875?q=80&w=1000&auto=format&fit=crop" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-rose-950/80 to-transparent p-10 flex flex-col justify-end">
+                            <h3 class="text-white text-3xl font-bold">Indore</h3>
+                            <p class="text-rose-100 italic">Where it all began.</p>
+                        </div>
+                    </div>
+                    <div class="reveal group relative h-[400px] rounded-[50px] overflow-hidden shadow-xl">
+                        <img src="https://images.unsplash.com/photo-1643906660127-1423871231f8?q=80&w=1000&auto=format&fit=crop" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-rose-950/80 to-transparent p-10 flex flex-col justify-end">
+                            <h3 class="text-white text-3xl font-bold">Maheshwar</h3>
+                            <p class="text-rose-100 italic">Sunsets by the Narmada Ghats.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PROMISE SECTION -->
+        <section class="py-24 bg-rose-50/50">
+            <div class="container mx-auto px-6 max-w-5xl">
+                <h2 class="font-['Playfair_Display'] text-5xl text-center text-rose-950 mb-16 reveal">My Eternal Promises</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="promise-card p-8 rounded-3xl reveal shadow-sm">
+                        <h4 class="text-rose-700 font-bold mb-2">The Promise of Presence</h4>
+                        <p class="text-gray-600 italic">"I promise to be there, not just in your happy days, but in the moments when the world feels too heavy."</p>
+                    </div>
+                    <div class="promise-card p-8 rounded-3xl reveal shadow-sm">
+                        <h4 class="text-rose-700 font-bold mb-2">The Promise of Growth</h4>
+                        <p class="text-gray-600 italic">"I promise to grow with you, to learn from you, and to build a future better than our dreams."</p>
+                    </div>
+                    <div class="promise-card p-8 rounded-3xl reveal shadow-sm">
+                        <h4 class="text-rose-700 font-bold mb-2">The Promise of Honesty</h4>
+                        <p class="text-gray-600 italic">"I promise to always be your safe space where truth lives without judgment."</p>
+                    </div>
+                    <div class="promise-card p-8 rounded-3xl reveal shadow-sm">
+                        <h4 class="text-rose-700 font-bold mb-2">The Promise of Forever</h4>
+                        <p class="text-gray-600 italic">"I promise that no matter where life takes us, my hand will always be holding yours."</p>
+                    </div>
+                </div>
+                <!-- MAGIC BUTTON -->
+                <div class="text-center mt-16 reveal">
+                    <button onclick="triggerMagic()" class="px-10 py-5 bg-rose-600 text-white rounded-full font-bold shadow-xl hover:bg-rose-700 transition transform hover:scale-110 flex items-center gap-3 mx-auto">
+                        <span>✨</span> Click for Magic <span>✨</span>
+                    </button>
+                    <p class="mt-4 text-rose-400 text-xs font-bold uppercase tracking-widest">Animations just for you, Bubu!</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- BUBU'S HOTLINE SECTION -->
+        <section class="py-24 bg-rose-900 text-white">
+            <div class="container mx-auto px-6 text-center reveal">
+                <h2 class="font-['Playfair_Display'] text-5xl mb-4">Bubu's 24/7 Hotline</h2>
+                <p class="text-rose-200 mb-12 uppercase tracking-[0.3em] text-sm">One call to your Dudu, and it's done!</p>
+                
+                <a href="tel:919685578955" class="inline-flex items-center gap-6 bg-white text-rose-900 px-12 py-8 rounded-[40px] font-bold text-3xl shadow-2xl hover:scale-105 transition duration-300">
+                    <span class="animate-bounce">📞</span> 919685578955
+                </a>
+
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-16 hotline-grid max-w-6xl mx-auto">
+                    <div class="p-6 border border-rose-700 rounded-3xl bg-rose-950/50">
+                        <div class="text-3xl mb-3">🍕</div>
+                        <p class="text-xs font-bold uppercase tracking-widest">Order Food</p>
+                    </div>
+                    <div class="p-6 border border-rose-700 rounded-3xl bg-rose-950/50">
+                        <div class="text-3xl mb-3">💆</div>
+                        <p class="text-xs font-bold uppercase tracking-widest">Need Massage</p>
+                    </div>
+                    <div class="p-6 border border-rose-700 rounded-3xl bg-rose-950/50">
+                        <div class="text-3xl mb-3">🏙️</div>
+                        <p class="text-xs font-bold uppercase tracking-widest">Roam Around</p>
+                    </div>
+                    <div class="p-6 border border-rose-700 rounded-3xl bg-rose-950/50">
+                        <div class="text-3xl mb-3">✈️</div>
+                        <p class="text-xs font-bold uppercase tracking-widest">Travel</p>
+                    </div>
+                    <div class="p-6 border border-rose-700 rounded-3xl bg-rose-950/50">
+                        <div class="text-3xl mb-3">💖</div>
+                        <p class="text-xs font-bold uppercase tracking-widest">Love</p>
+                    </div>
+                    <div class="p-6 border border-rose-700 rounded-3xl bg-rose-950/50">
+                        <div class="text-3xl mb-3">♾️</div>
+                        <p class="text-xs font-bold uppercase tracking-widest">Everything</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAVORITES -->
+        <section class="py-32 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                    <div class="reveal space-y-8">
+                        <h2 class="font-['Playfair_Display'] text-5xl text-rose-950">Bubu's Favorites</h2>
+                        <div class="flex items-center gap-8 p-10 bg-rose-50 rounded-[40px]">
+                            <div class="w-24 h-24 bg-rose-500 rounded-3xl flex items-center justify-center text-white text-5xl">🤴</div>
+                            <div>
+                                <h4 class="font-bold text-3xl text-rose-900">Hrithik Roshan</h4>
+                                <p class="text-rose-400 font-bold uppercase mt-1">The GOAT</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-8 p-10 bg-rose-50 rounded-[50px]">
+                            <div class="w-24 h-24 bg-rose-400 rounded-3xl flex items-center justify-center text-white text-5xl">💖</div>
+                            <div>
+                                <h4 class="font-bold text-3xl text-rose-900">Rohit Saraf</h4>
+                                <p class="text-rose-400 font-bold uppercase mt-1">Forever Crush</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="reveal p-12 bg-white rounded-[60px] shadow-2xl text-center border border-rose-50">
+                        <p class="text-xs font-bold text-rose-400 uppercase tracking-[0.4em] mb-8">Our Song</p>
+                        <div class="video-container mb-8">
+                            <iframe src="https://www.youtube.com/embed/BadBAMnPX0I?controls=1&rel=0" frameborder="0"></iframe>
+                        </div>
+                        <h3 class="text-3xl font-bold text-rose-950">Pehli Nazar Mein</h3>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- GAMES SECTION -->
+        <section class="py-32 bg-rose-50/50">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-20 reveal">
+                    <h2 class="font-['Playfair_Display'] text-6xl text-rose-950 mb-4">Bubu's Playground</h2>
+                    <p class="text-rose-400 text-lg uppercase tracking-widest font-bold">6 Challenges to Win My Heart Again</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                    <!-- GAME 1: GRAVITY -->
+                    <div class="reveal game-card">
+                        <h3 class="text-2xl font-['Playfair_Display'] text-rose-900 mb-2">Gravity Hearts</h3>
+                        <p class="text-xs text-gray-500 mb-6">Avoid the falling clouds with 📍</p>
+                        <div class="game-canvas-container"><canvas id="gravity-canvas"></canvas></div>
+                        <button onclick="initGravity()" class="mt-6 w-full py-4 bg-rose-600 text-white rounded-2xl font-bold">Start</button>
+                    </div>
+
+                    <!-- GAME 2: WEAVER -->
+                    <div class="reveal game-card">
+                        <h3 class="text-2xl font-['Playfair_Display'] text-rose-900 mb-2">Love Weaver</h3>
+                        <p class="text-xs text-gray-500 mb-6">Trace the path carefully!</p>
+                        <div class="game-canvas-container"><canvas id="weaver-canvas"></canvas></div>
+                        <button onclick="initWeaver()" class="mt-6 w-full py-4 bg-rose-600 text-white rounded-2xl font-bold">Trace</button>
+                    </div>
+
+                    <!-- GAME 3: GARDEN -->
+                    <div class="reveal game-card">
+                        <h3 class="text-2xl font-['Playfair_Display'] text-rose-900 mb-2">Bubu's Garden</h3>
+                        <p class="text-xs text-gray-500 mb-6">Plant 15 flowers by tapping!</p>
+                        <div class="game-canvas-container"><canvas id="garden-canvas"></canvas></div>
+                        <button onclick="initGarden()" class="mt-6 w-full py-4 bg-rose-600 text-white rounded-2xl font-bold">Reset</button>
+                    </div>
+
+                    <!-- GAME 4: MEMORY -->
+                    <div class="reveal game-card">
+                        <h3 class="text-2xl font-['Playfair_Display'] text-rose-900 mb-2">Memory Match</h3>
+                        <p class="text-xs text-gray-500 mb-6">Match all the love icons!</p>
+                        <div class="game-canvas-container"><div class="card-grid" id="memory-grid"></div></div>
+                        <button onclick="initMemory()" class="mt-6 w-full py-4 bg-rose-600 text-white rounded-2xl font-bold">Shuffle</button>
+                    </div>
+
+                    <!-- GAME 5: BEAT MASTER -->
+                    <div class="reveal game-card">
+                        <h3 class="text-2xl font-['Playfair_Display'] text-rose-900 mb-2">Beat Master</h3>
+                        <p class="text-xs text-gray-500 mb-6">Tap when the heart is largest!</p>
+                        <div class="game-canvas-container"><canvas id="beat-canvas"></canvas></div>
+                        <button onclick="checkBeat()" class="mt-6 w-full py-4 bg-rose-600 text-white rounded-2xl font-bold uppercase">Tap Now!</button>
+                    </div>
+
+                    <!-- GAME 6: CUPID BOUNCE -->
+                    <div class="reveal game-card">
+                        <h3 class="text-2xl font-['Playfair_Display'] text-rose-900 mb-2">Cupid's Bounce</h3>
+                        <p class="text-xs text-gray-500 mb-6">Hold to charge, release to hit!</p>
+                        <div class="game-canvas-container"><canvas id="bounce-canvas"></canvas></div>
+                        <button onmousedown="chargeBounce()" onmouseup="fireBounce()" ontouchstart="chargeBounce()" ontouchend="fireBounce()" class="mt-6 w-full py-4 bg-rose-600 text-white rounded-2xl font-bold">Launch</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="py-24 text-center bg-white border-t border-rose-50">
+            <div class="font-['Dancing_Script'] text-6xl text-rose-500 mb-6">Arnav & Priyanshi</div>
+            <p class="text-rose-300 uppercase tracking-[1em] text-xs font-bold">Dudu & Bubu Forever</p>
+        </footer>
+    </div>
+
+    <script>
+        function triggerMagic() {
+            for(let i=0; i<30; i++) {
+                setTimeout(() => {
+                    const el = document.createElement('div');
+                    el.className = 'floating-element';
+                    el.innerHTML = ['💖','✨','⭐','🌸','🧸'][Math.floor(Math.random()*5)];
+                    el.style.setProperty('--duration', (2 + Math.random()*3) + 's');
+                    el.style.setProperty('--size', (30 + Math.random()*40) + 'px');
+                    el.style.setProperty('--drift', (Math.random()*600 - 300) + 'px');
+                    el.style.left = (Math.random()*100) + 'vw';
+                    document.body.appendChild(el);
+                    setTimeout(() => el.remove(), 5000);
+                }, i * 100);
+            }
+            confetti({ particleCount: 150, spread: 100, origin: { y: 0.7 } });
+        }
+
+        function handleLogin() {
+            const val = document.getElementById('pass').value.toUpperCase();
+            if(val === "BUBU DON") {
+                document.body.classList.add('unlocked', 'celebrating');
+                triggerMagic(); // Initial burst
+                setTimeout(() => {
+                    document.getElementById('celebration-overlay').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('celebration-overlay').style.display = 'none';
+                        document.getElementById('main-content').style.display = 'block';
+                        initAllGames();
+                        const obs = new IntersectionObserver((es) => {
+                            es.forEach(e => { if(e.isIntersecting) e.target.classList.add('active'); });
+                        }, { threshold: 0.1 });
+                        document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+                    }, 800);
+                }, 5000);
+            } else {
+                const e = document.getElementById('err'); e.style.opacity = '1';
+                setTimeout(() => e.style.opacity = '0', 2000);
+            }
+        }
+
+        function win(icon, title, msg) {
+            document.getElementById('modal-icon').innerText = icon;
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-msg').innerText = msg;
+            document.getElementById('game-modal').style.display = 'flex';
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        }
+
+        function initAllGames() {
+            initGravity(); initWeaver(); initGarden(); initMemory(); initBeat(); initBounce();
+        }
+
+        // 1. GRAVITY
+        const gCan = document.getElementById('gravity-canvas');
+        const gCtx = gCan.getContext('2d');
+        let gx=150, gobs=[], gactive=false, gscore=0;
+        function initGravity() { gactive=true; gobs=[]; gscore=0; gCan.width=300; gCan.height=300; gLoop(); }
+        function gLoop() {
+            if(!gactive) return;
+            gCtx.clearRect(0,0,300,300);
+            gCtx.font="30px Arial"; gCtx.fillText('📍', gx-15, 270);
+            if(Math.random()<0.08) gobs.push({x:Math.random()*270, y:-30});
+            gobs.forEach((o,i)=>{
+                o.y+=5; gCtx.fillText('☁️', o.x, o.y);
+                if(o.y>240 && Math.abs(o.x-gx+15)<25) gactive=false;
+                if(o.y>330) { gobs.splice(i,1); gscore++; if(gscore>15) { gactive=false; win('🛡️','Champion Bubu','Untouchable and amazing!'); } }
+            });
+            if(gactive) requestAnimationFrame(gLoop); else setTimeout(initGravity, 1000);
+        }
+        gCan.onmousemove = (e) => { let r=gCan.getBoundingClientRect(); gx=(e.clientX-r.left)*(300/r.width); };
+        gCan.ontouchmove = (e) => { let r=gCan.getBoundingClientRect(); gx=(e.touches[0].clientX-r.left)*(300/r.width); e.preventDefault(); };
+
+        // 2. WEAVER
+        const wCan = document.getElementById('weaver-canvas');
+        const wCtx = wCan.getContext('2d');
+        function initWeaver() {
+            wCan.width=300; wCan.height=300; wCtx.clearRect(0,0,300,300);
+            wCtx.strokeStyle='#ffe4e6'; wCtx.lineWidth=60; wCtx.lineJoin='round'; wCtx.lineCap='round';
+            wCtx.beginPath(); wCtx.moveTo(150, 50); wCtx.lineTo(50, 150); wCtx.lineTo(150, 250); wCtx.lineTo(250, 150); wCtx.closePath(); wCtx.stroke();
+            wCtx.font='18px Arial'; wCtx.fillStyle='red'; wCtx.fillText('START', 130, 40); wCtx.fillText('GOAL', 130, 275);
+        }
+        wCan.onmousemove = (e) => {
+            let r=wCan.getBoundingClientRect(); let x=(e.clientX-r.left)*(300/r.width), y=(e.clientY-r.top)*(300/r.height);
+            let p=wCtx.getImageData(x,y,1,1).data;
+            if(p[3]<10) initWeaver();
+            if(y>240 && x>130 && x<170) win('🧶','Soul Mates','Connected in every way!');
+        };
+
+        // 3. GARDEN
+        const garCan = document.getElementById('garden-canvas');
+        const garCtx = garCan.getContext('2d');
+        let flowers=0;
+        function initGarden() { garCan.width=300; garCan.height=300; garCtx.clearRect(0,0,300,300); flowers=0; }
+        garCan.onclick = (e) => {
+            let r=garCan.getBoundingClientRect(); let x=(e.clientX-r.left)*(300/r.width), y=(e.clientY-r.top)*(300/r.height);
+            garCtx.font="40px Arial"; garCtx.fillText(['🌸','🌹','🌻','🌷','🌺'][Math.floor(Math.random()*5)], x-20, y+20);
+            flowers++; if(flowers>=15) win('🌻','Garden of Love','Every flower blooms for you!');
+        };
+
+        // 4. MEMORY
+        let memCards=[], memSelected=[];
+        function initMemory() {
+            const grid=document.getElementById('memory-grid'); grid.innerHTML=''; memSelected=[];
+            let icons=['💖','💖','🧸','🧸','💎','💎','🌈','🌈'];
+            icons.sort(()=>Math.random()-0.5);
+            icons.forEach((ic, i) => {
+                const div=document.createElement('div'); div.className='memory-card'; div.dataset.val=ic; div.innerText='?';
+                div.onclick=()=>flip(div); grid.appendChild(div);
+            });
+        }
+        function flip(el) {
+            if(memSelected.length<2 && !el.classList.contains('flipped')) {
+                el.classList.add('flipped'); el.innerText=el.dataset.val; memSelected.push(el);
+                if(memSelected.length===2) {
+                    if(memSelected[0].dataset.val === memSelected[1].dataset.val) {
+                        memSelected=[]; if(document.querySelectorAll('.flipped').length===8) win('🧩','Soul Pairs','We just fit together!');
+                    } else {
+                        setTimeout(()=>{ memSelected.forEach(e=>{e.classList.remove('flipped'); e.innerText='?';}); memSelected=[]; }, 600);
+                    }
+                }
+            }
+        }
+
+        // 5. BEAT MASTER
+        const bCan=document.getElementById('beat-canvas'); const bCtx=bCan.getContext('2d');
+        let bScale=1, bGrow=true;
+        function initBeat() { bCan.width=300; bCan.height=300; bLoop(); }
+        function bLoop() {
+            bCtx.clearRect(0,0,300,300);
+            bCtx.strokeStyle='#fda4af'; bCtx.lineWidth=5; bCtx.beginPath(); bCtx.arc(150,150,80,0,Math.PI*2); bCtx.stroke();
+            bCtx.font=(bScale*100)+"px Arial"; bCtx.textAlign='center'; bCtx.fillText('❤️', 150, 150+ (bScale*30));
+            if(bGrow) bScale+=0.02; else bScale-=0.02;
+            if(bScale>1.2 || bScale<0.6) bGrow=!bGrow;
+            requestAnimationFrame(bLoop);
+        }
+        function checkBeat() { if(bScale>0.95 && bScale<1.05) win('💓','In Sync','Our hearts beat as one!'); }
+
+        // 6. BOUNCE
+        const boCan=document.getElementById('bounce-canvas'); const boCtx=boCan.getContext('2d');
+        let boPower=0, boCharging=false, boBall=null;
+        function initBounce() { boCan.width=300; boCan.height=300; boLoop(); }
+        function chargeBounce() { boCharging=true; boPower=0; }
+        function fireBounce() { boCharging=false; boBall={x:30, y:250, vx:boPower/4, vy:-boPower/3.5}; }
+        function boLoop() {
+            boCtx.clearRect(0,0,300,300);
+            boCtx.fillStyle='#fb7185'; boCtx.beginPath(); boCtx.arc(240, 60, 25, 0, Math.PI*2); boCtx.fill();
+            boCtx.fillStyle='white'; boCtx.font='10px Arial'; boCtx.fillText('TARGET', 220, 65);
+            if(boCharging) { boPower=Math.min(boPower+1, 100); boCtx.fillStyle='red'; boCtx.fillRect(10,10,boPower*2,10); }
+            if(boBall) {
+                boBall.x+=boBall.vx; boBall.y+=boBall.vy; boBall.vy+=0.25;
+                boCtx.font='30px Arial'; boCtx.fillText('💖', boBall.x, boBall.y);
+                if(Math.hypot(boBall.x-240, boBall.y-60)<35) { win('🎯','Bullseye','Straight to my heart!'); boBall=null; }
+                if(boBall.y>320 || boBall.x>300) boBall=null;
+            }
+            requestAnimationFrame(boLoop);
+        }
+    </script>
+</body>
+</html>
